@@ -99,6 +99,11 @@ limit. The `ogc-data.js` committed here is a snapshot; the page shows how old it
 
 - One HTML file, no dependencies, no build step, and no external network requests.
   Open `index.html` in any browser and it works offline.
+- **Built for a phone as well as a desktop.** Under 700px the table stops being a
+  table and becomes a stack of cards, one company each, with the columns as labelled
+  lines; the cockpit keeps the five columns worth having; the charts redraw with
+  larger type and fewer rows; and the flashcard buttons are thumb-sized. Nothing
+  scrolls sideways.
 - Everything you type — targets, theses, scores, flashcard progress — stays in your
   browser's local storage and is never sent anywhere.
 - Follows the viewer's light or dark theme.

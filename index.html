@@ -382,6 +382,7 @@
      COCKPIT: monitoring board, per-name workup, your own view
      ============================================================ */
   .ck{max-width:100%}
+  .introtog{display:none}
   .ck-intro{font-size:12.5px;color:var(--muted);margin:-6px 0 16px;max-width:110ch;line-height:1.6}
   .ck-intro b{color:var(--fg);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
   .ck-intro code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;
@@ -508,6 +509,117 @@
   :root[data-theme="dark"] .msg.err{background:hsl(2 30% 15%);color:hsl(2 62% 74%)}
   :root[data-theme="dark"] .msg.ok{background:hsl(152 26% 14%);color:hsl(152 44% 68%)}
 
+
+  /* ============================================================
+     PHONE  (<= 700px). The table stops being a table and becomes
+     a stack of cards; the cockpit keeps five columns; charts get
+     bigger type and fewer rows.
+     ============================================================ */
+  @media (max-width:700px){
+    .wrap{padding:18px 12px 48px}
+    h1{font-size:20px}
+    p.sub{font-size:13px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+    p.note{font-size:11.5px;display:none}
+    body.intro-open p.sub{display:block;-webkit-line-clamp:unset}
+    body.intro-open p.note{display:block}
+    .introtog{display:inline-block;font:inherit;font-size:11.5px;font-weight:600;letter-spacing:.04em;
+      text-transform:uppercase;color:var(--muted);background:none;border:0;padding:2px 0 10px;cursor:pointer;
+      text-decoration:underline;text-underline-offset:3px}
+    .topbar{gap:10px}
+
+    .nav{gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .nav button{padding:10px 12px;font-size:13.5px;white-space:nowrap}
+
+    /* ---- the table becomes cards ---- */
+    .scroll{overflow:visible}
+    table{min-width:0;display:block;font-size:14px}
+    thead{display:none}
+    tbody{display:block}
+    tr.sector{display:block}
+    tr.sector td{display:block;padding:11px 12px;font-size:11.5px;line-height:1.45;
+      border-bottom:1px solid var(--acc-soft-2)}
+    tr.co-row{display:block;padding:13px 2px 15px;border-bottom:1px solid var(--line)}
+    tr.co-row td{display:block;border:0;padding:0 12px;white-space:normal;width:auto}
+    tr.co-row:hover td,tr.co-row.open-co td,tr.co-row.open-pr td{background:transparent}
+    tr.co-row.open-co,tr.co-row.open-pr{background:var(--acc-soft)}
+    tr.co-row td.num{display:inline;color:var(--faint);font-size:12px;padding-right:2px}
+    tr.co-row td.co{display:inline;font-size:16px;white-space:normal}
+    td.co b.nm{border-bottom:0}
+    td.co span.tk{display:inline-block;margin:0 0 0 7px;vertical-align:1px}
+    td.co span.caret,td.prod span.caret{display:none}
+    tr.co-row td.val,tr.co-row td.p{display:inline;font-size:13px;white-space:nowrap;text-align:left}
+    tr.co-row td.val::before{content:'13F ';color:var(--faint);font-weight:400}
+    tr.co-row td.p.was::before{content:' · 1y ago ';color:var(--faint);font-weight:400}
+    tr.co-row td.p.now::before{content:' · now ';color:var(--faint);font-weight:400}
+    tr[data-key] td.p.was::before{content:' · '}
+    tr[data-key] td.p.now::before{content:' '}
+    tr[data-key] td.p{white-space:normal}          /* 'no 1-yr yet' must be allowed to wrap */
+    tr.co-row td.val{margin-top:6px}
+    tr.co-row td.prod{display:block;margin-top:9px;font-size:14px}
+    td.prod b.pn{border-bottom:1px dotted var(--acc);font-weight:600}
+    tr.co-row td.prod::before{content:'Main product';display:block;font-size:10px;letter-spacing:.06em;
+      text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:2px}
+    tr.co-row td[data-l]{display:block;margin-top:9px;color:var(--muted);font-size:13.5px;line-height:1.5}
+    tr.co-row td[data-l]::before{content:attr(data-l);display:block;font-size:10px;letter-spacing:.06em;
+      text-transform:uppercase;color:var(--faint);font-weight:600;margin-bottom:2px}
+    tr.co-row td:first-child{box-shadow:none}
+    td.num i.dot{margin-left:4px}
+    tr.detail{display:block}
+    tr.detail td{display:block;padding:0}
+    .dwrap{margin:0 0 4px;padding:12px 14px 14px;border-radius:0;max-width:none}
+    .dtabs{gap:6px}
+    .dtabs button{padding:8px 12px;font-size:11px}
+    .dwrap .story,.dwrap .sub2{font-size:14px;line-height:1.62}
+    .legend{gap:6px 12px;font-size:11.5px}
+
+    /* ---- flashcards ---- */
+    .fcbar{padding:12px;gap:12px}
+    .fcbar > div:nth-child(2){flex:1 1 100%}
+    .fcbar > div:last-child{order:-1;flex:1 1 100%}   /* Start first: nobody wants to scroll to it */
+    .fcbar > div:last-child .btn{width:100%;padding:13px}
+    .fcbar select{font-size:16px}          /* 16px stops iOS zooming on focus */
+    .decks button,.types label{padding:8px 12px;font-size:12.5px}
+    .deckcount{text-align:left;margin-top:8px}
+    .stats{grid-template-columns:1fr 1fr}
+    .savednote{gap:8px;font-size:11.5px}
+    .cinner{padding:20px 16px 18px}
+    .ctop{gap:8px;margin-bottom:12px}
+    .csec{font-size:10.5px}
+    .q{font-size:18px}
+    .q .big{font-size:34px}
+    .acts{gap:8px}
+    .acts .btn{flex:1 1 46%;padding:13px 10px;font-size:14px}
+    .hint{display:none}                    /* keyboard hints are pointless here */
+    .ans p{font-size:14.5px}
+
+    /* ---- cockpit ---- */
+    .ck-top{grid-template-columns:1fr 1fr}
+    .ck-grid{min-width:0;font-size:12.5px;table-layout:fixed;width:100%}
+    .ck-grid .mo{display:none}
+    .ck-grid th,.ck-grid td{padding:8px 4px}
+    .ck-grid td.nm{font-size:13px;white-space:normal;line-height:1.3}
+    .ck-grid td.nm small{font-size:10.5px}
+    .ck-grid td.pin{width:18px}
+    .ck-grid td.pin i{width:10px;height:10px}
+    .ck-grid th[data-k="name"]{width:38%}
+    .sigcell .sig{padding:2px 5px;font-size:9.5px}
+    .ck-bar{gap:6px}
+    .ck-bar .btn{flex:1 1 auto;padding:9px 10px}
+    .ck-bar input[type=search]{width:100%;font-size:16px}
+    .ck-charts{gap:12px}
+    svg.viz text{font-size:13px}
+    svg.viz .viz-ax,svg.viz .viz-foot{font-size:12px}
+    svg.viz .viz-pt{font-size:12px}
+    .fgrid{grid-template-columns:1fr 1fr}
+    .fgrid input,.ck-form textarea,.ck-form select{font-size:16px}
+    .scorebox{gap:12px}
+    .ck-cols{grid-template-columns:1fr}
+    #glosspop,#viztip{max-width:min(320px,calc(100vw - 24px))}
+  }
+  @media (max-width:420px){
+    .fgrid{grid-template-columns:1fr}
+    .q .big{font-size:30px}
+  }
 </style>
 </head>
 <body>
@@ -1035,6 +1147,9 @@ document.addEventListener('DOMContentLoaded', function(){
     tr.setAttribute('data-tk', tk);
     tr.setAttribute('tabindex','0');
     cells[0].innerHTML = cells[0].textContent.trim() + '<i class="dot"></i>';
+    /* on a phone the table becomes stacked cards, and these carry the column names */
+    if(cells[5]) cells[5].setAttribute('data-l', 'What they sell');
+    if(cells[7]) cells[7].setAttribute('data-l', 'Sells to');
 
     var kind = (ROW_OF[tk] || {}).kind;
     function tabLabel(i){
@@ -1111,6 +1226,18 @@ document.addEventListener('DOMContentLoaded', function(){
   paintDots();
   initTheme();
   initCards();
+
+  /* on a phone the preamble is folded to four lines behind this */
+  var note = document.querySelector('p.note');
+  if(note){
+    var tog = document.createElement('button');
+    tog.type = 'button'; tog.className = 'introtog'; tog.textContent = 'What is this?';
+    tog.addEventListener('click', function(){
+      var open = document.body.classList.toggle('intro-open');
+      tog.textContent = open ? 'Less' : 'What is this?';
+    });
+    note.parentNode.insertBefore(tog, note.nextSibling);
+  }
 });
 
 /* ================= theme (saved) ================= */
@@ -1710,6 +1837,16 @@ function ckRefresh(btn, after){
       });
     });
 }
+var ckWasNarrow = vizNarrow(), ckResizeT = null;
+window.addEventListener('resize', function(){
+  if(ckResizeT) clearTimeout(ckResizeT);
+  ckResizeT = setTimeout(function(){
+    if(vizNarrow() === ckWasNarrow) return;
+    ckWasNarrow = vizNarrow();
+    var v = document.getElementById('view-cockpit');
+    if(v && !v.hidden && !ckOpen) ckRender();     /* charts and columns are laid out per width */
+  }, 250);
+});
 function ckAgeOf(t){
   if(!t) return 'never';
   var mins = Math.round((Date.now() - t) / 60000);
@@ -1863,7 +2000,8 @@ function ckRender(){
     '</div>'+
     '<div class="scroll"><table class="ck-grid"><thead><tr>' +
       '<th></th>' + CK_COLS.map(function(c){
-        return '<th data-k="' + c.k + '" class="' + (ckSort.k === c.k ? 'on' + (ckSort.dir > 0 ? ' asc' : '') : '') + '">' + c.h + '</th>';
+        return '<th data-k="' + c.k + '" class="' + (c.mob ? '' : 'mo ') +
+          (ckSort.k === c.k ? 'on' + (ckSort.dir > 0 ? ' asc' : '') : '') + '">' + c.h + '</th>';
       }).join('') + '</tr></thead><tbody>';
 
   var list = rows.filter(function(r){
@@ -1894,10 +2032,10 @@ function ckRender(){
       '<td class="pin"><i class="' + (CK.pin[r.ticker] ? 'on' : '') + '" title="Track this name"></i></td>'+
       '<td class="nm">' + esc(r.name) + '<small>' + esc(r.ticker) + ' &middot; ' + esc(r.value) + '</small></td>';
     CK_COLS.slice(1).forEach(function(c){
-      if(c.k === 'sig'){ html += '<td><span class="sig ' + sig[0] + '">' + sig[1] + '</span></td>'; return; }
+      if(c.k === 'sig'){ html += '<td class="sigcell"><span class="sig ' + sig[0] + '">' + sig[1] + '</span></td>'; return; }
       var v = ckVal(r, c.k);
       var txt = c.f ? c.f(v) : (v === null ? '&ndash;' : v);
-      html += '<td class="' + (c.color ? cls(v) : (v === null ? 'none2' : '')) + '">' + txt + '</td>';
+      html += '<td class="' + (c.mob ? '' : 'mo ') + (c.color ? cls(v) : (v === null ? 'none2' : '')) + '">' + txt + '</td>';
     });
     html += '</tr>';
   });
@@ -1910,11 +2048,12 @@ function ckRender(){
   ckMsg = null;
   ckWire();
 }
+/* mob:1 marks the columns a phone keeps; the rest hide under 700px */
 var CK_COLS = [
-  {k:'name', h:'Company'},
-  {k:'px', h:'Price', f:fmtMoney},
-  {k:'wt', h:'Weight', f:function(v){ return v === null ? '&ndash;' : v.toFixed(1) + '%'; }},
-  {k:'day', h:'Today', f:function(v){ return fmtPct(v, 2); }, color:1},
+  {k:'name', h:'Company', mob:1},
+  {k:'px', h:'Price', f:fmtMoney, mob:1},
+  {k:'wt', h:'Weight', f:function(v){ return v === null ? '&ndash;' : v.toFixed(1) + '%'; }, mob:1},
+  {k:'day', h:'Today', f:function(v){ return fmtPct(v, 2); }, color:1, mob:1},
   {k:'m1', h:'1M', f:fmtPct, color:1},
   {k:'revg', h:'Rev YoY', f:fmtPct, color:1},
   {k:'ebitdag', h:'EBITDA YoY', f:fmtPct, color:1},
@@ -1925,7 +2064,7 @@ var CK_COLS = [
   {k:'tgt', h:'Target', f:fmtMoney},
   {k:'ups', h:'Upside', f:fmtPct, color:1},
   {k:'sc', h:'Score', f:function(v){ return v === null ? '&ndash;' : v + '<span style="color:var(--faint)">/100</span>'; }},
-  {k:'sig', h:'Signal'}
+  {k:'sig', h:'Signal', mob:1}
 ];
 function ckPerf(book, bm){
   var lines = [['Today','day'],['1 month','m1'],['Year to date','ytd'],['1 year','y1']];
@@ -2353,6 +2492,7 @@ function ckExportUI(){
    deficiency (green/red fails: deutan ΔE 4.1); sign is also carried by which
    side of the zero line a bar sits on and by the printed value, so colour is
    never the only channel. Every number here is also in the board below. */
+function vizNarrow(){ return !!(window.matchMedia && window.matchMedia('(max-width:700px)').matches); }
 function vizNum(v, dp, sign){
   if(v === null || v === undefined || !isFinite(v)) return '';
   var s = v.toFixed(dp === undefined ? 1 : dp);
@@ -2375,7 +2515,11 @@ function vizBar(x0, x1, y, h, cls, tip){
 /* one renderer for the three diverging bar charts */
 function vizDivBars(rows, opt){
   opt = opt || {};
-  var W = 560, padL = opt.padL || 58, padR = opt.padR || 60, rowH = 22, barH = 13;
+  var narrow = vizNarrow();
+  var W = narrow ? 400 : 560;
+  var padL = narrow ? (opt.padLm || 62) : (opt.padL || 58);   /* 13px labels need a wider gutter */
+  var padR = narrow ? 56 : (opt.padR || 60);
+  var rowH = narrow ? 26 : 22, barH = narrow ? 15 : 13;
   var H = rows.length * rowH + 26;
   var m = 0;
   rows.forEach(function(r){ m = Math.max(m, Math.abs(r.v)); });
@@ -2418,7 +2562,8 @@ function vizContribution(book){
   });
   if(rows.length < 3) return '';
   rows.sort(function(a, b){ return b.v - a.v; });
-  var top = rows.slice(0, 6), bot = rows.slice(-6);
+  var keep = vizNarrow() ? 4 : 6;
+  var top = rows.slice(0, keep), bot = rows.slice(-keep);
   var pick = top.concat(bot.filter(function(x){ return top.indexOf(x) < 0; }));
   pick.sort(function(a, b){ return b.v - a.v; });
   pick.forEach(function(r){
@@ -2442,7 +2587,8 @@ function vizWinners(){
   });
   if(rows.length < 4) return '';
   rows.sort(function(a, b){ return b.v - a.v; });
-  var pick = rows.slice(0, 6).concat(rows.slice(-6));
+  var k2 = vizNarrow() ? 4 : 6;
+  var pick = rows.slice(0, k2).concat(rows.slice(-k2));
   pick = pick.filter(function(x, i){ return pick.indexOf(x) === i; });
   pick.sort(function(a, b){ return b.v - a.v; });
   pick.forEach(function(r){
@@ -2450,7 +2596,7 @@ function vizWinners(){
     r.tip = r.name + ' — ' + vizNum(r.v, 1, true) + '% over the past year';
   });
   return vizCard('Best and worst, past year',
-    'Price return over twelve months. Six at each end, out of ' + rows.length + ' priced names.',
+    'Price return over twelve months. ' + k2 + ' at each end, out of ' + rows.length + ' priced names.',
     vizDivBars(pick, {aria:'Best and worst one-year price returns among the holdings'}));
 }
 
@@ -2476,7 +2622,7 @@ function vizSectors(book){
   });
   return vizCard('Today by sector',
     'Each sector\'s move, weighted by what you hold in it.',
-    vizDivBars(rows, {padL:96, aria:'Today\'s value-weighted move by sector'}));
+    vizDivBars(rows, {padL:96, padLm:98, aria:'Today\'s value-weighted move by sector'}));
 }
 
 /* 4. is the money in the winners? */
@@ -2488,7 +2634,9 @@ function vizWeightVsReturn(book){
     pts.push({k:r.ticker, name:r.name, x:pos / book.now * 100, y:y1});
   });
   if(pts.length < 5) return '';
-  var W = 560, H = 300, padL = 46, padR = 16, padT = 10, padB = 34;
+  var narrow = vizNarrow();
+  var W = narrow ? 400 : 560, H = narrow ? 250 : 300;
+  var padL = narrow ? 56 : 46, padR = 16, padT = 10, padB = narrow ? 38 : 34;
   var xs = pts.map(function(p){ return p.x; });
   var xMax = Math.max.apply(null, xs) * 1.08;
   /* returns are multiplicative, so space them by log(1+r): +680% stops flattening everything else */
@@ -2522,7 +2670,7 @@ function vizWeightVsReturn(book){
       '% of the book, ' + vizNum(p.y, 1, true) + '% over the year') + '"></circle>';
   });
   var placed = [];
-  pts.slice(-6).reverse().forEach(function(p){
+  pts.slice(narrow ? -4 : -6).reverse().forEach(function(p){
     var lx = X(p.x), ly = Y(p.y) - 9;
     var clash = placed.some(function(q){ return Math.abs(q[0] - lx) < 34 && Math.abs(q[1] - ly) < 12; });
     if(clash) return;                                  /* a label that would sit on another one is dropped */
@@ -2545,9 +2693,11 @@ function vizRange(){
     rows.push({k:r.ticker, name:r.name, p:(px - lo) / (hi - lo) * 100, px:px, hi:hi, lo:lo, w:pos || 0});
   });
   if(rows.length < 4) return '';
+  var narrow = vizNarrow();
   rows.sort(function(a, b){ return b.w - a.w; });
-  rows = rows.slice(0, 12).sort(function(a, b){ return b.p - a.p; });
-  var W = 560, padL = 58, padR = 54, rowH = 22, H = rows.length * rowH + 26;
+  rows = rows.slice(0, narrow ? 8 : 12).sort(function(a, b){ return b.p - a.p; });
+  var W = narrow ? 400 : 560, padL = narrow ? 60 : 58, padR = narrow ? 50 : 54;
+  var rowH = narrow ? 26 : 22, H = rows.length * rowH + 26;
   var out = '<svg class="viz" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Where each holding sits in its 52-week range">' +
     '<title>Where each holding sits in its 52-week range</title>';
   var x0 = padL, x1 = W - padR;
@@ -2563,7 +2713,7 @@ function vizRange(){
   out += '<text class="viz-ax" x="' + x0 + '" y="' + (H - 4) + '">52-week low</text>' +
          '<text class="viz-ax" x="' + x1 + '" y="' + (H - 4) + '" text-anchor="end">high</text>';
   return vizCard('Near the high, or near the low',
-    'The twelve largest positions, placed between their 52-week low and high.',
+    'The ' + (narrow ? 'eight' : 'twelve') + ' largest positions, placed between their 52-week low and high.',
     out + '</svg>');
 }
 

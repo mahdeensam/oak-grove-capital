@@ -45,6 +45,13 @@ one, and the panel compares the book against the S&P 500 over four windows.
 `ogc-data.js`, which the page loads by itself. **No API key, no signup, no pip install** —
 just the Python that ships with macOS.
 
+**The published site keeps itself current.** A GitHub Actions workflow
+(`.github/workflows/refresh.yml`) runs the same script every 30 minutes while US
+markets are open, commits the result, and Pages redeploys. Nothing to install and no
+secrets to configure. Press **Run workflow** on the Actions tab to refresh on demand.
+
+To run it against your own copy:
+
 ```bash
 python3 ogc-refresh.py                    # once
 python3 ogc-refresh.py --serve --loop 300 # refresh every 5 min, and answer the Refresh button

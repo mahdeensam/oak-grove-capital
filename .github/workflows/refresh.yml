@@ -1,0 +1,41 @@
+name: Refresh market data
+
+# Keeps ogc-data.js current on the published site. Yahoo's endpoints need no key,
+# so this runs with nothing configured: no secrets, no signup.
+on:
+  schedule:
+    - cron: "*/30 13-21 * * 1-5"   # every 30 min through the US session (UTC)
+    - cron: "45 21 * * 1-5"        # once after the close
+  workflow_dispatch:                # and whenever you press Run workflow
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch prices and fundamentals
+        run: python3 ogc-refresh.py
+
+      - name: Commit if anything changed
+        run: |
+          if git diff --quiet -- ogc-data.js; then
+            echo "no change"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ogc-data.js
+          git commit -m "Refresh market data $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push

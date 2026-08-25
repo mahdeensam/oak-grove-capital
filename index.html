@@ -1560,6 +1560,7 @@ function ckAutoPoll(){
 function ckPort(){ return CK.port || 8765; }
 /* Refresh button: ask the refresher running next to this file for new numbers,
    then re-read what it wrote. If it is not running, re-read the file and say so. */
+var ckHosted = location.protocol !== 'file:';
 function ckRefresh(btn, after){
   var label = btn ? btn.textContent : '';
   if(btn){ btn.disabled = true; btn.textContent = 'Refreshing...'; }
@@ -1567,10 +1568,19 @@ function ckRefresh(btn, after){
   function finish(msg){
     clearTimeout(timer);
     ckLoadAuto(function(){
-      ckMsg = msg;
+      ckMsg = typeof msg === 'function' ? msg() : msg;
       if(btn){ btn.disabled = false; btn.textContent = label; }
       if(after) after(); else if(!ckOpen) ckRender();
     });
+  }
+  /* Published copy: a scheduled job refreshes the data file, so just re-read it.
+     Local copy: ask the refresher running next to the file for new numbers. */
+  if(ckHosted){
+    finish(function(){
+      return ['ok', 'Reloaded. Data is ' + (ckAge() || 'of unknown age') +
+        '. This published copy refreshes itself every 30 minutes while US markets are open.'];
+    });
+    return;
   }
   fetch('http://127.0.0.1:' + ckPort() + '/refresh', {signal: ctl.signal})
     .then(function(r){ return r.json(); })
@@ -2115,6 +2125,9 @@ function ckLiveUI(){
     '<span class="spacer"></span><button class="btn" id="ckreload">Refresh now</button></div>'+
     status +
     '<div class="ck-form paste"><h3>The data feed</h3>'+
+    (ckHosted ? '<p><b>This copy refreshes itself.</b> A scheduled job on GitHub runs the same script every 30 minutes '+
+      'while US markets are open and commits the result, and the page re-reads it every minute. Nothing to install, '+
+      'nothing to run. What follows applies to a copy you have downloaded.</p>' : '')+
     '<p><code>ogc-refresh.py</code> sits next to this file. It pulls price, one-month, year-to-date and one-year returns, the 52-week range, '+
     'revenue and its growth, EBITDA and its growth, EPS and growth, free cash flow and margin, gross and operating margin, cash, debt, '+
     'P/E, forward P/E, EV/EBITDA, EV/Sales, FCF yield, the street target and the next earnings date, for all 77 companies. '+

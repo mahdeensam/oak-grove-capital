@@ -22,7 +22,9 @@ from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PAGE = os.path.join(HERE, "oak-grove-77-companies.html")
+# the dashboard is index.html when published, and keeps its long name locally
+PAGE = next((os.path.join(HERE, n) for n in ("oak-grove-77-companies.html", "index.html")
+             if os.path.exists(os.path.join(HERE, n))), os.path.join(HERE, "index.html"))
 OUT  = os.path.join(HERE, "ogc-data.js")
 UA   = "Mozilla/5.0"   # Yahoo hands out a crumb to a plain agent with a clean cookie jar
 # tickers the dashboard spells differently from Yahoo

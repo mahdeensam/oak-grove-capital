@@ -58,8 +58,22 @@ python3 ogc-refresh.py --serve --loop 300 # refresh every 5 min, and answer the 
 ```
 
 On macOS, double-click `OGC feed.command` instead. The page re-reads the file every
-minute while the Cockpit is open, and the **Refresh** button pulls new numbers on demand
-from the local refresher.
+minute while the Cockpit is open.
+
+### The Refresh button
+
+It fetches, wherever the page is running:
+
+- **On the published site** it pulls live prices straight from the browser. Yahoo's
+  spark endpoint answers 20 symbols at a time, so the whole book plus the S&P 500
+  arrives in four requests, and it updates price, today's move, 1M, YTD, 1Y and the
+  52-week range. Fundamentals and multiples keep coming from the scheduled job.
+- **On a local copy** it calls the refresher on `127.0.0.1` for the full set, and falls
+  back to the same browser fetch if that is not running.
+
+Browsers cannot call Yahoo directly, because no cross-origin headers come back, so the
+in-browser path goes through `r.jina.ai`, a public relay that adds them. No key and no
+account; if it is unavailable the page says so and keeps showing the scheduled feed.
 
 A page can't fetch this itself: Yahoo and the SEC send no cross-origin headers, so no
 browser is allowed to call them from any origin. A script on your machine has no such

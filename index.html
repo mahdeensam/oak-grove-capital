@@ -1561,6 +1561,71 @@ function ckPort(){ return CK.port || 8765; }
 /* Refresh button: ask the refresher running next to this file for new numbers,
    then re-read what it wrote. If it is not running, re-read the file and say so. */
 var ckHosted = location.protocol !== 'file:';
+/* A browser cannot call Yahoo directly: no cross-origin headers come back. This
+   relay adds them, and Yahoo's spark endpoint answers 20 symbols at a time, so the
+   whole book refreshes in four requests. Prices and returns only; the fundamentals
+   keep coming from the scheduled job. */
+var CK_RELAY = 'https://r.jina.ai/https://query1.finance.yahoo.com/v8/finance/spark?symbols=';
+function ckSparkStats(ts, cl){
+  var pairs = [], i;
+  for(i = 0; i < ts.length; i++){ if(cl[i] !== null && cl[i] !== undefined) pairs.push([ts[i], cl[i]]); }
+  if(pairs.length < 2) return null;
+  var last = pairs[pairs.length - 1], px = last[1];
+  function from(cut){
+    var e = null;
+    for(var j = 0; j < pairs.length; j++){ if(pairs[j][0] <= cut) e = pairs[j][1]; }
+    return e ? (px/e - 1) * 100 : null;
+  }
+  function r2(v){ return v === null || v === undefined ? null : Math.round(v * 100) / 100; }
+  var closes = pairs.map(function(p){ return p[1]; });
+  var jan1 = new Date(new Date(last[0] * 1000).getFullYear(), 0, 1).getTime() / 1000;
+  return {px:r2(px), prev:r2(pairs[pairs.length - 2][1]), m1:r2(from(last[0] - 30 * 86400)),
+          ytd:r2(from(jan1)), y1:r2((px / pairs[0][1] - 1) * 100),
+          hi:r2(Math.max.apply(null, closes)), lo:r2(Math.min.apply(null, closes))};
+}
+function ckRelayRefresh(){
+  var map = {}, syms = [];
+  ckRows().forEach(function(r){
+    var y = r.ticker === 'BRK.B' ? 'BRK-B' : r.ticker.replace(/\./g, '-');
+    map[y] = r.ticker; syms.push(y);
+  });
+  map['^GSPC'] = '^GSPC'; syms.push('^GSPC');
+  var chunks = [], i;
+  for(i = 0; i < syms.length; i += 20) chunks.push(syms.slice(i, i + 20));
+  return Promise.all(chunks.map(function(c){
+    return fetch(CK_RELAY + encodeURIComponent(c.join(',')) + '&range=1y&interval=1d',
+      {headers: {'x-respond-with': 'text'}})
+      .then(function(res){
+        if(res.status === 429) throw new Error('the relay is rate limiting, try again in a minute');
+        if(!res.ok) throw new Error('relay replied ' + res.status);
+        return res.json();
+      });
+  })).then(function(parts){
+    if(!CK.autoData) CK.autoData = {by:{}, n:0, src:'Yahoo Finance'};
+    CK.autoData.by = CK.autoData.by || {};
+    var n = 0;
+    parts.forEach(function(j){
+      Object.keys(j || {}).forEach(function(y){
+        var blk = j[y];
+        if(!blk || !blk.close || !blk.timestamp) return;
+        var st = ckSparkStats(blk.timestamp, blk.close);
+        if(!st) return;
+        if(y === '^GSPC'){
+          CK.liveBench = {day: st.prev ? Math.round((st.px / st.prev - 1) * 10000) / 100 : null,
+                          m1: st.m1, ytd: st.ytd, y1: st.y1};
+          return;
+        }
+        var tk = map[y]; if(!tk) return;
+        var d = CK.autoData.by[tk] || (CK.autoData.by[tk] = {});
+        ['px','prev','m1','ytd','y1','hi','lo'].forEach(function(k){ if(st[k] !== null) d[k] = st[k]; });
+        n++;
+      });
+    });
+    CK.liveT = Date.now();
+    ckBookCache = null;
+    return n;
+  });
+}
 function ckRefresh(btn, after){
   var label = btn ? btn.textContent : '';
   if(btn){ btn.disabled = true; btn.textContent = 'Refreshing...'; }
@@ -1575,10 +1640,21 @@ function ckRefresh(btn, after){
   }
   /* Published copy: a scheduled job refreshes the data file, so just re-read it.
      Local copy: ask the refresher running next to the file for new numbers. */
+  function viaRelay(why){
+    return ckRelayRefresh().then(function(n){
+      clearTimeout(timer);
+      ckMsg = ['ok', 'Fetched ' + n + ' live prices from Yahoo just now' + (why ? ' (' + why + ')' : '') +
+        '. Fundamentals and multiples are from the scheduled feed, ' + ckAgeOf(CK.autoData && CK.autoData.t) + '.'];
+      if(btn){ btn.disabled = false; btn.textContent = label; }
+      if(after) after(); else if(!ckOpen) ckRender();
+    });
+  }
   if(ckHosted){
-    finish(function(){
-      return ['ok', 'Reloaded. Data is ' + (ckAge() || 'of unknown age') +
-        '. This published copy refreshes itself every 30 minutes while US markets are open.'];
+    viaRelay('').catch(function(e){
+      finish(function(){
+        return ['err', 'Could not reach the price relay: ' + esc(String(e.message || e)) +
+          '. Showing the scheduled feed, ' + (ckAge() || 'of unknown age') + '.'];
+      });
     });
     return;
   }
@@ -1589,15 +1665,24 @@ function ckRefresh(btn, after){
       finish(['ok', 'Refreshed from Yahoo: ' + j.n + ' companies, just now.']);
     })
     .catch(function(e){
-      finish(['err', 'The refresher is not answering on port ' + ckPort() + ' (' + esc(String(e.message || e)) + '). '+
-        'Showing the file as of ' + (ckAge() || 'never') + '. Start it by double-clicking <b>OGC feed.command</b>, '+
-        'or run <code>python3 ogc-refresh.py --serve --loop 300</code> in this folder.']);
+      /* no local refresher: fall back to the relay, which still gets live prices */
+      viaRelay('the local refresher is not running, so this is prices only').catch(function(e2){
+        finish(function(){
+          return ['err', 'No local refresher on port ' + ckPort() + ' and the relay failed too (' +
+            esc(String(e2.message || e2)) + '). Showing the file as of ' + (ckAge() || 'never') +
+            '. Start the feed by double-clicking <b>OGC feed.command</b>.'];
+        });
+      });
     });
 }
-function ckAge(){
-  var t = CK.autoData && CK.autoData.t; if(!t) return null;
+function ckAgeOf(t){
+  if(!t) return 'never';
   var mins = Math.round((Date.now() - t) / 60000);
   return mins < 1 ? 'just now' : (mins < 60 ? mins + ' min ago' : Math.round(mins/60) + ' h ago');
+}
+function ckAge(){
+  var t = CK.liveT || (CK.autoData && CK.autoData.t);
+  return t ? ckAgeOf(t) : null;
 }
 function num(v){ if(v === '' || v === null || v === undefined) return null; var n = Number(v); return isFinite(n) ? n : null; }
 function mval(v){
@@ -1653,7 +1738,7 @@ function ckBook(){
           ytd:pc(win.ytd[0], win.ytd[1]), y1:pc(win.y1[0], win.y1[1])};
 }
 function ckBench(){
-  var b = (CK.autoData && CK.autoData.bench) || {};
+  var b = CK.liveBench || (CK.autoData && CK.autoData.bench) || {};
   var out = {day:num(b.day), m1:num(b.m1), ytd:num(b.ytd), y1:num(b.y1)};
   if(num(CK.spx) !== null) out.day = num(CK.spx);
   return out;
@@ -1719,7 +1804,8 @@ function ckRender(){
       ckTile('Since the 13F', since === null ? '&ndash;' : fmtPct(since, 1), cls(since),
              'vs ' + fmtBig(book.total * 1e6) + ' on ' + ((CK.autoData && CK.autoData.asOf) || '30 Jun')) +
       ckTile('Last update', ckAge() || (CK.ts ? new Date(CK.ts).toLocaleTimeString() : 'no feed'), '',
-             CK.autoData ? ('Yahoo, ' + CK.autoData.n + ' names') : 'run ogc-refresh.py') +
+             CK.liveT ? ('prices live &middot; metrics ' + ckAgeOf(CK.autoData && CK.autoData.t))
+                      : (CK.autoData ? ('Yahoo, ' + CK.autoData.n + ' names') : 'press Refresh')) +
     '</div>' +
     '<div class="ck-row2">'+
       '<div class="ck-box"><h3>Alerts</h3>' + ckAlerts() + '</div>'+

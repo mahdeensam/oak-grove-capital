@@ -222,6 +222,39 @@
 
   td.p.lab{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:600}
   td.p.none{color:var(--faint);font-size:12px;font-weight:400}
+  /* ---------- dashboard charts ---------- */
+  .ck-charts{--viz-pos:#2a78d6;--viz-neg:#d03b3b;
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(370px,1fr));gap:14px;margin:0 0 12px}
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .ck-charts{--viz-pos:#3987e5;--viz-neg:#e66767}}
+  :root[data-theme="dark"] .ck-charts{--viz-pos:#3987e5;--viz-neg:#e66767}
+  .viz-card{display:flex;flex-direction:column}
+  .viz-sub{font-size:11.5px;color:var(--faint);margin:-4px 0 10px;line-height:1.5}
+  .viz-empty{font-size:13px;color:var(--muted);text-align:center;padding:22px}
+  svg.viz{width:100%;height:auto;display:block;font-family:inherit}
+  svg.viz text{font-family:inherit}
+  .viz-pos{fill:var(--viz-pos)}
+  .viz-neg{fill:var(--viz-neg)}
+  .viz-pos-f{fill:var(--viz-pos);stroke:var(--surface);stroke-width:2}
+  .viz-neg-f{fill:var(--viz-neg);stroke:var(--surface);stroke-width:2}
+  .viz-zero{stroke:var(--border-2);stroke-width:1}
+  .viz-grid{stroke:var(--line);stroke-width:1}
+  .viz-track{stroke:var(--line);stroke-width:3;stroke-linecap:round}
+  .viz-lab{font-size:11px;font-weight:600;fill:var(--muted);letter-spacing:.02em}
+  .viz-val{font-size:11px;font-weight:600;fill:var(--fg);font-variant-numeric:tabular-nums}
+  .viz-val.viz-in{fill:#fff}
+  /* dark-mode fills are the lighter steps, so an inside label reads better in ink */
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .viz-val.viz-in{fill:#12151a}}
+  :root[data-theme="dark"] .viz-val.viz-in{fill:#12151a}
+  .viz-ax{font-size:10.5px;fill:var(--faint);font-variant-numeric:tabular-nums}
+  .viz-pt{font-size:10.5px;font-weight:600;fill:var(--muted)}
+  .viz-foot{font-size:10.5px;fill:var(--faint)}
+  [data-tip]{cursor:default}
+  path[data-tip]:hover{opacity:.78}
+  circle[data-tip]:hover{stroke:var(--fg);stroke-width:1.5}
+  #viztip{position:absolute;z-index:95;max-width:300px;background:var(--bg);color:var(--fg);
+    border:1px solid var(--border-2);border-radius:3px;padding:8px 11px;font-size:12px;line-height:1.5;
+    pointer-events:none;box-shadow:0 12px 30px -14px rgba(16,20,24,.5),0 1px 2px rgba(16,20,24,.08)}
+  @media(max-width:640px){.ck-charts{grid-template-columns:1fr}}
   /* ---------- glossary + emphasis ---------- */
   b.term{font-weight:600;color:inherit;border-bottom:1px dotted var(--acc);cursor:help;
     padding-bottom:1px;transition:background .12s}
@@ -664,6 +697,8 @@ var SECTORS = ["AI, semiconductors and data centers","Big tech, software and int
   "Power, utilities and AI energy","Natural gas, LNG, oil and pipelines","Metals and mining",
   "Healthcare and life sciences","Financial services","Real estate","Aerospace, defense and space",
   "Consumer, communications and automotive","ETFs and funds","The options book"];
+var SEC_SHORT = ["AI & semis","Big tech","Power","Gas & oil","Metals",
+  "Healthcare","Financials","Real estate","Aerospace","Consumer","ETFs","Options"];
 function secIdx(name){ var i = SECTORS.indexOf(name); return i < 0 ? 1 : i + 1; }
 var SEC_OF = {}, ROW_OF = {};
 ROWS.forEach(function(r){ SEC_OF[r.ticker] = secIdx(r.sector); ROW_OF[r.ticker] = r; });
@@ -1717,7 +1752,7 @@ function ckPosVal(r){
 /* The book priced twice: now, and at each earlier point. A return is the change in
    what the whole book is worth, so a $50M name moves it fifty times as much as a $1M one. */
 function ckBook(){
-  var now = 0, prev = 0, cover = 0, total = 0, names = 0;
+  var now = 0, nowDay = 0, prev = 0, cover = 0, total = 0, names = 0;
   var win = {m1:[0,0], ytd:[0,0], y1:[0,0]};
   ckRows().forEach(function(r){
     total += mval(r.value);
@@ -1726,7 +1761,7 @@ function ckBook(){
     var v = sh * px;
     now += v; cover += mval(r.value); names++;
     var pv = num(d.prev);
-    if(pv) prev += sh * pv;
+    if(pv){ prev += sh * pv; nowDay += v; }   /* same names on both sides, or the move is not a move */
     ['m1','ytd','y1'].forEach(function(k){
       var rr = num(d[k]);
       if(rr !== null && rr > -99.9){ win[k][0] += v; win[k][1] += v / (1 + rr/100); }
@@ -1734,7 +1769,7 @@ function ckBook(){
   });
   function pc(a, b){ return b ? (a/b - 1) * 100 : null; }
   return {now:now, prev:prev, cover:cover, total:total, names:names,
-          day:pc(now, prev), m1:pc(win.m1[0], win.m1[1]),
+          day:pc(nowDay, prev), m1:pc(win.m1[0], win.m1[1]),
           ytd:pc(win.ytd[0], win.ytd[1]), y1:pc(win.y1[0], win.y1[1])};
 }
 function ckBench(){
@@ -1812,6 +1847,7 @@ function ckRender(){
       '<div class="ck-box"><h3>Movers today</h3>' + ckMovers(rows) + '</div>'+
       '<div class="ck-box"><h3>Book vs S&amp;P 500</h3>' + ckPerf(book, bm) + '</div>'+
     '</div>' +
+    ckCharts(book) +
     (ckMsg ? '<div class="msg ' + ckMsg[0] + '">' + ckMsg[1] + '</div>' : '') +
     '<div class="ck-bar">'+
       '<div class="decks" id="ckfilter">'+
@@ -2101,12 +2137,14 @@ function ckWire(){
   });
   Array.prototype.forEach.call(st.querySelectorAll('.ck-grid tbody tr'), function(tr){
     var tk = tr.getAttribute('data-tk');
-    tr.querySelector('td.pin i').addEventListener('click', function(e){
+    var pin = tr.querySelector('td.pin i'), nm = tr.querySelector('td.nm');
+    if(!tk || !pin || !nm) return;            /* the empty-filter row has neither */
+    pin.addEventListener('click', function(e){
       e.stopPropagation();
       if(CK.pin[tk]) delete CK.pin[tk]; else CK.pin[tk] = 1;
       save(); ckRender();
     });
-    tr.querySelector('td.nm').addEventListener('click', function(){ ckOpen = tk; ckDetail(tk); window.scrollTo(0, 0); });
+    nm.addEventListener('click', function(){ ckOpen = tk; ckDetail(tk); window.scrollTo(0, 0); });
   });
   var rf = document.getElementById('ckrefresh');
   if(rf) rf.addEventListener('click', function(){ ckRefresh(this); });
@@ -2308,6 +2346,260 @@ function ckExportUI(){
     } catch(e){ ckMsg = ['err', 'That is not valid cockpit JSON: ' + esc(String(e.message || e))]; ckRender(); }
   });
 }
+
+
+/* ================= dashboard charts =================
+   Inline SVG, no libraries. Diverging blue/red validated for colour-vision
+   deficiency (green/red fails: deutan ΔE 4.1); sign is also carried by which
+   side of the zero line a bar sits on and by the printed value, so colour is
+   never the only channel. Every number here is also in the board below. */
+function vizNum(v, dp, sign){
+  if(v === null || v === undefined || !isFinite(v)) return '';
+  var s = v.toFixed(dp === undefined ? 1 : dp);
+  return (sign && v > 0 ? '+' : '') + s;
+}
+function vizEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+/* bar rounded on the data end, square on the baseline */
+function vizBar(x0, x1, y, h, cls, tip){
+  var r = Math.min(4, Math.abs(x1 - x0)), d;
+  if(Math.abs(x1 - x0) < 0.6) x1 = x0 + (x1 >= x0 ? 0.6 : -0.6);
+  if(x1 >= x0){
+    d = 'M' + x0 + ' ' + y + 'H' + (x1 - r) + 'a' + r + ' ' + r + ' 0 0 1 ' + r + ' ' + r +
+        'v' + (h - 2*r) + 'a' + r + ' ' + r + ' 0 0 1 ' + (-r) + ' ' + r + 'H' + x0 + 'Z';
+  } else {
+    d = 'M' + x0 + ' ' + y + 'H' + (x1 + r) + 'a' + r + ' ' + r + ' 0 0 0 ' + (-r) + ' ' + r +
+        'v' + (h - 2*r) + 'a' + r + ' ' + r + ' 0 0 0 ' + r + ' ' + r + 'H' + x0 + 'Z';
+  }
+  return '<path class="' + cls + '" d="' + d + '"' + (tip ? ' data-tip="' + vizEsc(tip) + '"' : '') + '></path>';
+}
+/* one renderer for the three diverging bar charts */
+function vizDivBars(rows, opt){
+  opt = opt || {};
+  var W = 560, padL = opt.padL || 58, padR = opt.padR || 60, rowH = 22, barH = 13;
+  var H = rows.length * rowH + 26;
+  var m = 0;
+  rows.forEach(function(r){ m = Math.max(m, Math.abs(r.v)); });
+  if(!m) m = 1;
+  var hasNeg = rows.some(function(r){ return r.v < 0; }), hasPos = rows.some(function(r){ return r.v > 0; });
+  var plotW = W - padL - padR;
+  var zero = hasNeg && hasPos ? padL + plotW / 2 : (hasNeg ? padL + plotW : padL);
+  var span = hasNeg && hasPos ? plotW / 2 : plotW;
+  var out = '<svg class="viz" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' +
+    vizEsc(opt.aria || '') + '"><title>' + vizEsc(opt.aria || '') + '</title>';
+  out += '<line class="viz-zero" x1="' + zero + '" y1="6" x2="' + zero + '" y2="' + (H - 20) + '"></line>';
+  rows.forEach(function(r, i){
+    var y = 6 + i * rowH, x1 = zero + (r.v / m) * span;
+    out += vizBar(zero, x1, y, barH, r.v < 0 ? 'viz-neg' : 'viz-pos', r.tip);
+    out += '<text class="viz-lab" x="' + (padL - 8) + '" y="' + (y + barH - 2) + '" text-anchor="end">' + vizEsc(r.k) + '</text>';
+    var wLab = String(r.label).length * 6.3 + 10;
+    var room = Math.abs(x1 - zero);
+    var inside = room > wLab + 6;                     /* only label inside if it truly fits */
+    var vx = r.v < 0 ? (inside ? x1 + 6 : x1 - 6) : (inside ? x1 - 6 : x1 + 6);
+    var anchor = r.v < 0 ? (inside ? 'start' : 'end') : (inside ? 'end' : 'start');
+    out += '<text class="viz-val' + (inside ? ' viz-in' : '') + '" x="' + vx.toFixed(1) + '" y="' +
+      (y + barH - 2) + '" text-anchor="' + anchor + '">' + vizEsc(r.label) + '</text>';
+  });
+  if(opt.foot) out += '<text class="viz-foot" x="' + zero + '" y="' + (H - 4) + '" text-anchor="middle">' + vizEsc(opt.foot) + '</text>';
+  return out + '</svg>';
+}
+function vizCard(title, sub, body){
+  return '<div class="ck-box viz-card"><h3>' + title + '</h3><p class="viz-sub">' + sub + '</p>' + body + '</div>';
+}
+
+/* 1. what actually moved the book today */
+function vizContribution(book){
+  var rows = [];
+  ckRows().forEach(function(r){
+    var d = dv(r.ticker), sh = ckShares(r), px = num(d.px), pv = num(d.prev);
+    if(!sh || px === null || pv === null || !book.prev) return;
+    /* what this position added to the book, in basis points: these sum to the book's move */
+    var bps = (sh * (px - pv) / book.prev) * 10000;
+    rows.push({k:r.ticker, v:bps, name:r.name, day:(px/pv - 1) * 100, w:sh * px / book.now * 100});
+  });
+  if(rows.length < 3) return '';
+  rows.sort(function(a, b){ return b.v - a.v; });
+  var top = rows.slice(0, 6), bot = rows.slice(-6);
+  var pick = top.concat(bot.filter(function(x){ return top.indexOf(x) < 0; }));
+  pick.sort(function(a, b){ return b.v - a.v; });
+  pick.forEach(function(r){
+    r.label = vizNum(r.v, 0, true) + ' bp';
+    r.tip = r.name + ' — ' + vizNum(r.day, 2, true) + '% today at ' + vizNum(r.w, 1) +
+            '% weight, worth ' + vizNum(r.v, 0, true) + ' basis points of the book';
+  });
+  return vizCard('What moved the book today',
+    'Each name\'s weight times its move, in basis points of the whole book. They add up to today\'s ' +
+    vizNum(book.day, 2, true) + '%.',
+    vizDivBars(pick, {aria:'Contribution to today\'s portfolio move by company, in basis points'}));
+}
+
+/* 2. the year's winners and losers */
+function vizWinners(){
+  var rows = [];
+  ckRows().forEach(function(r){
+    var v = num(dv(r.ticker).y1);
+    if(v === null) return;
+    rows.push({k:r.ticker, v:v, name:r.name});
+  });
+  if(rows.length < 4) return '';
+  rows.sort(function(a, b){ return b.v - a.v; });
+  var pick = rows.slice(0, 6).concat(rows.slice(-6));
+  pick = pick.filter(function(x, i){ return pick.indexOf(x) === i; });
+  pick.sort(function(a, b){ return b.v - a.v; });
+  pick.forEach(function(r){
+    r.label = vizNum(r.v, 0, true) + '%';
+    r.tip = r.name + ' — ' + vizNum(r.v, 1, true) + '% over the past year';
+  });
+  return vizCard('Best and worst, past year',
+    'Price return over twelve months. Six at each end, out of ' + rows.length + ' priced names.',
+    vizDivBars(pick, {aria:'Best and worst one-year price returns among the holdings'}));
+}
+
+/* 3. where today's move is concentrated */
+function vizSectors(book){
+  var acc = {};
+  ckRows().forEach(function(r){
+    var d = dv(r.ticker), day = ckDay(d), pos = ckPosVal(r);
+    if(day === null || !pos) return;
+    var a = acc[r.sector] || (acc[r.sector] = {w:0, wv:0, n:0});
+    a.w += pos; a.wv += pos * day; a.n++;
+  });
+  var rows = Object.keys(acc).map(function(s){
+    var a = acc[s], i = SECTORS.indexOf(s);
+    return {k:(i >= 0 ? SEC_SHORT[i] : s.slice(0, 10)), v:a.wv / a.w, full:s,
+            w:a.w / book.now * 100, n:a.n};
+  });
+  if(rows.length < 2) return '';
+  rows.sort(function(a, b){ return b.v - a.v; });
+  rows.forEach(function(r){
+    r.label = vizNum(r.v, 2, true) + '%';
+    r.tip = r.full + ' — ' + r.n + ' names, ' + vizNum(r.w, 1) + '% of the book, ' + vizNum(r.v, 2, true) + '% today';
+  });
+  return vizCard('Today by sector',
+    'Each sector\'s move, weighted by what you hold in it.',
+    vizDivBars(rows, {padL:96, aria:'Today\'s value-weighted move by sector'}));
+}
+
+/* 4. is the money in the winners? */
+function vizWeightVsReturn(book){
+  var pts = [];
+  ckRows().forEach(function(r){
+    var d = dv(r.ticker), y1 = num(d.y1), pos = ckPosVal(r);
+    if(y1 === null || !pos) return;
+    pts.push({k:r.ticker, name:r.name, x:pos / book.now * 100, y:y1});
+  });
+  if(pts.length < 5) return '';
+  var W = 560, H = 300, padL = 46, padR = 16, padT = 10, padB = 34;
+  var xs = pts.map(function(p){ return p.x; });
+  var xMax = Math.max.apply(null, xs) * 1.08;
+  /* returns are multiplicative, so space them by log(1+r): +680% stops flattening everything else */
+  function L(r){ return Math.log(1 + Math.max(-95, r) / 100); }
+  var ls = pts.map(function(p){ return L(p.y); });
+  var lMin = Math.min.apply(null, ls), lMax = Math.max.apply(null, ls);
+  var lPad = (lMax - lMin) * 0.1 || 0.1;
+  lMin -= lPad; lMax += lPad;
+  function X(v){ return padL + (v / xMax) * (W - padL - padR); }
+  function Y(v){ return padT + (1 - (L(v) - lMin) / (lMax - lMin)) * (H - padT - padB); }
+  var out = '<svg class="viz" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Position weight against one-year return">' +
+    '<title>Position weight against one-year return</title>';
+  var ticks = [-75, -50, -25, 0, 50, 100, 200, 400, 800].filter(function(t){
+    var l = L(t); return l >= lMin && l <= lMax;
+  });
+  ticks.forEach(function(t){
+    out += '<line class="viz-grid" x1="' + padL + '" y1="' + Y(t).toFixed(1) + '" x2="' + (W - padR) + '" y2="' + Y(t).toFixed(1) + '"></line>' +
+      '<text class="viz-ax" x="' + (padL - 7) + '" y="' + (Y(t) + 3.5).toFixed(1) + '" text-anchor="end">' +
+      (t > 0 ? '+' : '') + t + '%</text>';
+  });
+  if(L(0) >= lMin && L(0) <= lMax)
+    out += '<line class="viz-zero" x1="' + padL + '" y1="' + Y(0).toFixed(1) + '" x2="' + (W - padR) + '" y2="' + Y(0).toFixed(1) + '"></line>';
+  [0, xMax / 2, xMax].forEach(function(v){
+    out += '<text class="viz-ax" x="' + X(v) + '" y="' + (H - 14) + '" text-anchor="middle">' + v.toFixed(v < 10 ? 1 : 0) + '%</text>';
+  });
+  out += '<text class="viz-ax" x="' + ((padL + W - padR) / 2) + '" y="' + (H - 2) + '" text-anchor="middle">weight in the book</text>';
+  pts.sort(function(a, b){ return a.x - b.x; });
+  pts.forEach(function(p){
+    out += '<circle class="viz-dot ' + (p.y < 0 ? 'viz-neg-f' : 'viz-pos-f') + '" cx="' + X(p.x).toFixed(1) +
+      '" cy="' + Y(p.y).toFixed(1) + '" r="4.5" data-tip="' + vizEsc(p.name + ' — ' + vizNum(p.x, 1) +
+      '% of the book, ' + vizNum(p.y, 1, true) + '% over the year') + '"></circle>';
+  });
+  var placed = [];
+  pts.slice(-6).reverse().forEach(function(p){
+    var lx = X(p.x), ly = Y(p.y) - 9;
+    var clash = placed.some(function(q){ return Math.abs(q[0] - lx) < 34 && Math.abs(q[1] - ly) < 12; });
+    if(clash) return;                                  /* a label that would sit on another one is dropped */
+    placed.push([lx, ly]);
+    out += '<text class="viz-pt" x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '" text-anchor="middle">' +
+      vizEsc(p.k) + '</text>';
+  });
+  return vizCard('Is the money in the winners?',
+    'Every priced holding: how much of the book it is, against its past year. Returns are spaced logarithmically, so ' +
+    'one enormous winner does not flatten the rest. The largest positions are named.',
+    out + '</svg>');
+}
+
+/* 5. near the high or near the low */
+function vizRange(){
+  var rows = [];
+  ckRows().forEach(function(r){
+    var d = dv(r.ticker), px = num(d.px), hi = num(d.hi), lo = num(d.lo), pos = ckPosVal(r);
+    if(px === null || hi === null || lo === null || hi <= lo) return;
+    rows.push({k:r.ticker, name:r.name, p:(px - lo) / (hi - lo) * 100, px:px, hi:hi, lo:lo, w:pos || 0});
+  });
+  if(rows.length < 4) return '';
+  rows.sort(function(a, b){ return b.w - a.w; });
+  rows = rows.slice(0, 12).sort(function(a, b){ return b.p - a.p; });
+  var W = 560, padL = 58, padR = 54, rowH = 22, H = rows.length * rowH + 26;
+  var out = '<svg class="viz" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Where each holding sits in its 52-week range">' +
+    '<title>Where each holding sits in its 52-week range</title>';
+  var x0 = padL, x1 = W - padR;
+  rows.forEach(function(r, i){
+    var y = 6 + i * rowH + 6, cx = x0 + (r.p / 100) * (x1 - x0);
+    out += '<line class="viz-track" x1="' + x0 + '" y1="' + y + '" x2="' + x1 + '" y2="' + y + '"></line>';
+    out += '<circle class="viz-dot viz-pos-f" cx="' + cx.toFixed(1) + '" cy="' + y + '" r="5" data-tip="' +
+      vizEsc(r.name + ' — ' + fmtMoney(r.px) + ' now, 52-week range ' + fmtMoney(r.lo) + ' to ' + fmtMoney(r.hi) +
+      ', ' + Math.round(r.p) + '% of the way up') + '"></circle>';
+    out += '<text class="viz-lab" x="' + (padL - 8) + '" y="' + (y + 4) + '" text-anchor="end">' + vizEsc(r.k) + '</text>';
+    out += '<text class="viz-val" x="' + (x1 + 7) + '" y="' + (y + 4) + '">' + Math.round(r.p) + '%</text>';
+  });
+  out += '<text class="viz-ax" x="' + x0 + '" y="' + (H - 4) + '">52-week low</text>' +
+         '<text class="viz-ax" x="' + x1 + '" y="' + (H - 4) + '" text-anchor="end">high</text>';
+  return vizCard('Near the high, or near the low',
+    'The twelve largest positions, placed between their 52-week low and high.',
+    out + '</svg>');
+}
+
+function ckCharts(book){
+  if(!book || !book.names){
+    return '<div class="ck-box viz-empty">Charts appear once the board has prices. Press <b>Refresh</b>.</div>';
+  }
+  var cards = [vizContribution(book), vizWinners(), vizSectors(book), vizWeightVsReturn(book), vizRange()]
+    .filter(Boolean).join('');
+  return '<div class="ck-charts">' + cards + '</div>' +
+    '<p class="fnote" style="margin:-4px 0 16px">Blue is up, red is down, and every bar also sits on the side of the line that says so. ' +
+    'Hover any mark for the detail; the same numbers are in the board below.</p>';
+}
+
+/* one tooltip for every chart */
+function vizTipHide(){ var t = document.getElementById('viztip'); if(t) t.remove(); }
+function vizTipShow(el, ev){
+  var txt = el.getAttribute('data-tip'); if(!txt) return;
+  vizTipHide();
+  var t = document.createElement('div');
+  t.id = 'viztip'; t.textContent = txt;
+  document.body.appendChild(t);
+  var r = el.getBoundingClientRect();
+  var x = (ev && ev.clientX !== undefined ? ev.clientX : r.left + r.width / 2) + window.scrollX;
+  var y = r.top + window.scrollY - t.offsetHeight - 9;
+  if(y < window.scrollY + 4) y = r.bottom + window.scrollY + 9;
+  t.style.left = Math.max(8, Math.min(x - t.offsetWidth / 2,
+    window.scrollX + document.documentElement.clientWidth - t.offsetWidth - 8)) + 'px';
+  t.style.top = y + 'px';
+}
+document.addEventListener('mouseover', function(e){
+  var el = e.target && e.target.closest ? e.target.closest('[data-tip]') : null;
+  if(el) vizTipShow(el, e); else if(!(e.target.closest && e.target.closest('#viztip'))) vizTipHide();
+});
+document.addEventListener('mouseleave', vizTipHide, true);
+window.addEventListener('scroll', vizTipHide, true);
 
 </script>
 </body>

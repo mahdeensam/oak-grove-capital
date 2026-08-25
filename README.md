@@ -35,6 +35,22 @@ A monitoring board for the 77 operating companies: live prices and moves, weight
 fundamentals, multiples, your own target, thesis, thesis breakers and a 100-point
 conviction score, plus alerts on your own thresholds.
 
+Five charts sit above the board and answer the obvious questions at a glance:
+
+- **What moved the book today** — each holding's contribution in basis points, which
+  add up exactly to the day's return, so you can see what actually did the damage.
+- **Best and worst, past year** — the six at each end of a twelve-month price return.
+- **Today by sector** — each sector's move, weighted by what you hold in it.
+- **Is the money in the winners?** — weight against one-year return for every priced
+  name, spaced logarithmically so one enormous winner does not flatten the rest.
+- **Near the high, or near the low** — the twelve largest positions placed between
+  their 52-week low and high.
+
+Blue is up and red is down: green/red fails colour-vision separation (deuteranopia
+ΔE 4.1 against a ≥8 target), while blue/red clears every check in both themes. The
+sign is carried by the side of the zero line and the printed value too, so colour is
+never the only channel.
+
 Portfolio returns are computed from share counts (13F value divided by the price on
 the filing date), so a $50M position moves the number fifty times as hard as a $1M
 one, and the panel compares the book against the S&P 500 over four windows.
